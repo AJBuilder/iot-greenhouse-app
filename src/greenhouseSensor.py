@@ -123,7 +123,16 @@ if __name__ == '__main__':
         while True:
             message = "Testing"
             print("Publishing message to topic '{}': {}".format(topic, message))
-            obj = {"message": message, "time": int(time.time())}
+            obj = {
+                "sensor_name": client_id,
+                "time": int(time.time()),
+                "humidity": 0,
+                "temperature": 0,
+                "moisture_1": 0,
+                "moisture_2": 0,
+                "moisture_3": 0,
+                "moisture_4": 0,
+                }
             message_json = json.dumps(obj)
             mqtt_connection.publish(
                 topic=topic,

@@ -10,6 +10,11 @@
       "StackName": "amplify-amplifye47fc0daa3c64-staging-221108",
       "StackId": "arn:aws:cloudformation:us-east-2:278823122849:stack/amplify-amplifye47fc0daa3c64-staging-221108/bb450e50-f048-11ed-9488-06342d3ee2d3",
       "AmplifyAppId": "d2dqbv8k0h0oj3"
+    },
+    "categories": {
+      "auth": {
+        "iotgreenhouseapp": {}
+      }
     }
   }
 }
