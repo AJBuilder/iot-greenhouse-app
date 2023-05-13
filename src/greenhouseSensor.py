@@ -9,6 +9,7 @@ import time
 import json
 import argparse
 import time
+import random
 
 
 # Callback when connection is accidentally lost.
@@ -126,12 +127,12 @@ if __name__ == '__main__':
             obj = {
                 "sensor_name": client_id,
                 "time": int(time.time()),
-                "humidity": 0,
-                "temperature": 0,
-                "moisture_1": 0,
-                "moisture_2": 0,
-                "moisture_3": 0,
-                "moisture_4": 0,
+                "humidity": random.randint(0, 100) / 100,
+                "temperature": random.randint(32, 100),
+                "moisture_1": random.randint(0, 100) / 100,
+                "moisture_2": random.randint(0, 100) / 100,
+                "moisture_3": random.randint(0, 100) / 100,
+                "moisture_4": random.randint(0, 100) / 100,
                 }
             message_json = json.dumps(obj)
             mqtt_connection.publish(
