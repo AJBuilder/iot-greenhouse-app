@@ -1,0 +1,25 @@
+.SensorGraph {
+    display: flex;
+    width: 100%;
+    height: fit-content;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px
+}
+
+.GraphControl {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.DateEntry {
+    display: flex;
+    width: fit-content;
+    gap: 10px;
+    flex-direction: row;
+    align-items: center;
+}

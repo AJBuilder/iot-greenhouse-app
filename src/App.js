@@ -1,5 +1,5 @@
 import { Amplify, Auth } from 'aws-amplify';
-import { Authenticator } from '@aws-amplify/ui-react';
+import { Authenticator, CheckboxField } from '@aws-amplify/ui-react';
 import DynamoDB from 'aws-sdk/clients/dynamodb';
 
 import awsExports from './aws-exports';
@@ -9,6 +9,7 @@ import '@aws-amplify/ui-react/styles.css';
 
 import React from 'react';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
+import SensorGraph from './ui-components/SensorGraph';
 
 Amplify.configure(awsExports);
 
@@ -17,13 +18,12 @@ function App() {
 
 
   const [data, setData] = React.useState([]);
-  const [dataToDisplay, setdataToDisplay] = React.useState({"Temperature": false,"Humidity": false,"Moisture": false,});
 
 
   function getData(begin, end){
 
-    console.log("begin", begin);
-    console.log("end", end);
+    //console.log("begin", begin);
+    //console.log("end", end);
     const params = { 
       TableName: 'GreenhouseData',
       KeyConditionExpression: '#id = :iottopic AND #t BETWEEN :begin AND :end',
@@ -44,14 +44,14 @@ function App() {
           region: "us-east-2",
           credentials: Auth.essentialCredentials(credentials)
         });
-        db.query(params, function(err, result) {
+        return new Promise( resolve => {
+          db.query(params, function(err, result) {
             if (err) {
             console.log(err);
-            return null;
+            resolve(null);
             } else {
         
-            console.log('Got data');
-            console.log(result["Items"]);
+            //console.log('Got data',result["Items"]);
 
             let temp = [];
 
@@ -70,69 +70,52 @@ function App() {
               temp.push(tempPoint);
             }
 
-            console.log("Setting data",temp)
-            setData(temp);
+            //console.log("Returning data",temp)
+            resolve(temp);
             }     
-        })      
+          })  
+        });    
       });
   }
 
-  React.useEffect(() => {
-    getData(new Date(Date.now() - (2 * 60 * 60 * 1000)), new Date());
-    
-  }, [])
+  function formatAirQuality(input){
 
-  React.useEffect(() => {
-    console.log("Rerender")
-  })
+    //console.log("Formating data:", input)
 
-  function handleDataToDisplay(type){
-    let temp = {...dataToDisplay};
-    temp[type] = !temp[type];
-    console.log("Change", temp)
+    let foundBase = false;
+    let base;
+    for(const [key, point] of Object.entries(input)){
+      if(!foundBase){
+        if(point.gas_quality != null){
+          base = point.gas_quality;
+          foundBase = true;
+        }
+      }
+      if(foundBase){
+        input[key].gas_quality = point.gas_quality * 100 / base;
+      }
+    }
 
-    setdataToDisplay(temp);
+    //console.log("Formated data:", input)
+    return input;
+
   }
 
-  console.log("loaded")
+  React.useEffect(() => {
+    getData(new Date(Date.now() - (2 * 60 * 60 * 1000)), new Date()).then(r => setData(formatAirQuality(r)));
+    console.log(data)
+  }, [])
+
+  
 
   return (
     <Authenticator>
       {
         ({signOut, user}) => {
           return <div className="App">
-            {
-              Object.keys(dataToDisplay).map((value, index) => {
-
-                return <label key={index}>
-                  {value}
-                  <input
-                  type="checkbox"
-                  onChange={() => handleDataToDisplay(value)}
-                  >
-                  </input>  
-                </label>
-              })
-            }
-            {data.length !== 0 ?
-            <LineChart width={600} height={300} data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              {dataToDisplay["Temperature"] ? <Line type="monotone" dataKey="temperature" stroke="#8884d8" /> : null}
-              {dataToDisplay["Humidity"] ? <Line type="monotone" dataKey="humidity" stroke="#8884d8" /> : null}
-              {dataToDisplay["Moisture"] ? <Line type="monotone" dataKey="moisture_1" stroke="#8884d8" /> : null}
-              {dataToDisplay["Moisture"] ? <Line type="monotone" dataKey="moisture_2" stroke="#8884d8" /> : null}
-              {dataToDisplay["Moisture"] ? <Line type="monotone" dataKey="moisture_3" stroke="#8884d8" /> : null}
-              {dataToDisplay["Moisture"] ? <Line type="monotone" dataKey="moisture_4" stroke="#8884d8" /> : null}
-
-              <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-              <XAxis 
-                dataKey={'time'}
-                domain={[data[0]["time"], data[data.length - 1]["time"]]}
-                scale="time"
-                type="number"
-                tickFormatter={(x) => (new Date(x * 1000)).toLocaleString()} />
-              <YAxis />
-              <Tooltip />
-            </LineChart> : null}
+            
+            <SensorGraph data={data}></SensorGraph>
+            
           </div>
         }
       }

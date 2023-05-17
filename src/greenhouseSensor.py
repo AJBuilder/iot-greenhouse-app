@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
@@ -5,6 +6,7 @@ from awscrt import mqtt, http
 from awsiot import mqtt_connection_builder
 import sys
 import threading
+import bme680
 import time
 import json
 import argparse
@@ -107,6 +109,23 @@ if __name__ == '__main__':
         clean_session=False,
         keep_alive_secs=30,)
     
+    try:
+        sensor = bme680.BME680(bme680.I2C_ADDR_PRIMARY)
+    except (RuntimeError, IOError):
+        sensor = bme680.BME680(bme680.I2C_ADDR_SECONDARY)
+
+    sensor.set_humidity_oversample(bme680.OS_2X)
+    sensor.set_pressure_oversample(bme680.OS_4X)
+    sensor.set_temperature_oversample(bme680.OS_8X)
+    sensor.set_filter(bme680.FILTER_SIZE_3)
+    sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
+
+    sensor.set_gas_heater_temperature(320)
+    sensor.set_gas_heater_duration(150)
+    sensor.select_gas_heater_profile(0)
+
+        
+    
     
     try:
         print("Connecting to endpoint with client ID: " + client_id)
@@ -122,19 +141,36 @@ if __name__ == '__main__':
         print("Sending messages until program killed")
 
         while True:
-            message = "Testing"
-            print("Publishing message to topic '{}': {}".format(topic, message))
+
             obj = {
                 "sensor_name": client_id,
-                "time": int(time.time()),
-                "humidity": random.randint(0, 100) / 100,
-                "temperature": random.randint(32, 100),
-                "moisture_1": random.randint(0, 100) / 100,
-                "moisture_2": random.randint(0, 100) / 100,
-                "moisture_3": random.randint(0, 100) / 100,
-                "moisture_4": random.randint(0, 100) / 100,
+                "time": None,
+                "humidity": None,
+                "temperature": None,
+                "pressure": None,
+                "gas_quality": None,
+                "moisture_1": None,
+                "moisture_2": None,
+                "moisture_3": None,
+                "moisture_4": None,
                 }
+            
+            if sensor.get_sensor_data():
+                obj["humidity"] = sensor.data.humidity
+                obj["temperature"] = (sensor.data.temperature * 9/5) + 32
+                obj["pressure"] = sensor.data.pressure
+
+
+            
+            
+            if sensor.data.heat_stable:
+                obj["gas_quality"] = sensor.data.gas_resistance
+
+            obj["time"] = int(time.time())
             message_json = json.dumps(obj)
+
+            print("Publishing message to topic '{}': {}".format(topic, message_json))
+
             mqtt_connection.publish(
                 topic=topic,
                 payload=message_json,
